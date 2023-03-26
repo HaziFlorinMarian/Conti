@@ -38,16 +38,29 @@ class MyThread_sweep(QThread):
                 i = 0
             time.sleep(0.5)
 
-        ''' complete with necesarry code '''
-
 
 ############################### EXERCISE 5 #################################
 class MyThread_warning(QThread):
     warningLightsSignal = pyqtSignal(int)
 
     def run(self):
-        pass
-        ''' complete with necesarry code '''
+        global warning
+        global leftWarningVar
+        global rightWarningVar
+
+        while True:
+            if warning:
+                warning = False
+                if leftWarningVar:
+                    self.warningLightsSignal.emit(2)
+                elif rightWarningVar:
+                    self.warningLightsSignal.emit(3)
+                else:
+                    self.warningLightsSignal.emit(1)
+            else:
+                warning = True
+                self.warningLightsSignal.emit(0)
+            time.sleep(0.5)
 
 
 class Ui_MainWindow(object):
@@ -416,15 +429,25 @@ class Ui_MainWindow(object):
     ############################### EXERCISE 5 ##############################
     # Warning lights thread
     def warningLightsButton(self):
-        ''' complete with necesarry code '''
-        self.thread_warning = MyThread_warning()
-        self.thread_warning.warningLightsSignal.connect(self.whileLights)
-        self.thread_warning.start()
+        if hasattr(self, "thread_warning"):
+            self.thread_warning.stop()
+            del self.thread_warning
+        else:
+            self.thread_warning = MyThread_warning()
+            self.thread_warning.warningLightsSignal.connect(self.whileLights)
+            self.thread_warning.start()
 
     # Warning Lights function
     def whileLights(self, val):
-        pass
-        ''' complete with necesarry code '''
+        print(f"val = {val}")
+        if val == 0:
+            self.setWarningLights("white", "white", "white", "white")
+        elif val == 1:
+            self.setWarningLights("orange", "orange", "orange", "orange")
+        elif val == 2:
+            self.setWarningLights("orange", "white", "orange", "white")
+        elif val == 3:
+            self.setWarningLights("white", "orange", "white", "orange")
 
     ############################### EXERCISE 6 ##############################
     ################################ BONUS ################################
