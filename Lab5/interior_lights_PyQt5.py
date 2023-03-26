@@ -125,7 +125,7 @@ class Ui_MainWindow(object):
         self.current_kl_label = QtWidgets.QLabel(self.centralwidget)
         self.current_kl_label.setGeometry(QtCore.QRect(680, 80, 151, 31))
         self.current_kl_label.setStyleSheet("font: bold;")
-        self.current_kl_label.setText("Current KL: no_KL")
+        self.current_kl_label.setText(f"Current KL: no_KL")
 
         # Previous kl button
         self.prev_kl = QtWidgets.QPushButton(MainWindow)
@@ -351,23 +351,51 @@ class Ui_MainWindow(object):
     ############################### EXERCISE 4 ###############################
     # Succesice KL led turn 
     def KL_lights(self, KL):
-        pass
-        ''' complete with necesarry code '''
+        if KL == 0:
+            self.set_bg_colors("white", "white", "white", "white")
+        elif KL == 1:
+            self.set_bg_colors("grey", "white", "white", "white")
+        elif KL == 2:
+            self.set_bg_colors("grey", "green", "white", "white")
+        elif KL == 3:
+            self.set_bg_colors("grey", "green", "red", "white")
+        elif KL == 4:
+            self.set_bg_colors("grey", "green", "red", "blue")
 
     # Set previous value for KL when previous KL button is pressed
     def prev_kl_function(self):
-        pass
-        ''' complete with necesarry code '''
+        global KL_list, KL_position
+
+        KL_position -= 1
+        self.KL_lights(KL_position)
+        self.set_enable()
+
+        self.current_kl_label.setText(f"Current KL: {KL_list[KL_position]}")
 
     # Set next value for KL when next KL button is pressed
     def next_kl_function(self):
-        pass
-        ''' complete with necesarry code '''
+        global KL_list, KL_position
+
+        KL_position += 1
+
+        self.KL_lights(KL_position)
+        self.set_enable()
+
+        self.current_kl_label.setText(f"Current KL: {KL_list[KL_position]}")
 
     # Set enable KL buttons
     def set_enable(self):
-        pass
-        ''' complete with necesarry code '''
+        global KL_position
+
+        if KL_position == 0:
+            self.prev_kl.setEnabled(False)
+            self.next_kl.setEnabled(True)
+        elif KL_position == 4:
+            self.prev_kl.setEnabled(True)
+            self.next_kl.setEnabled(False)
+        else:
+            self.prev_kl.setEnabled(True)
+            self.next_kl.setEnabled(True)
 
     # Set KL leds colors
     def set_bg_colors(self, l1, l2, l3, l4):
