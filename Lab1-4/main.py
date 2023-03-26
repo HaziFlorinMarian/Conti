@@ -10,6 +10,8 @@ cam = cv2.VideoCapture("Lane Detection Test Video 01.mp4")
 left_top = left_bottom = right_top = right_bottom = (0, 0)
 
 while True:
+    # [1] Open the video file “Lane Detection Test Video 01.mp4” and play it!
+
     # Returns whether cv2 was able to get a frame, and the actual frame (which is a Numpy array)
     ret, frame = cam.read()
 
@@ -19,24 +21,24 @@ while True:
     # Get current frame size
     height, width, channels = frame.shape
 
-    # Shrink the frame to be able to fit around 12 separate windows
+    # [2] Shrink the frame!
     width, height = width // 4, height // 4
 
     # Change frame size
     resized_frame = cv2.resize(frame, (width, height))
     cv2.imshow('Default', resized_frame)
 
-    # Convert the image to grayscale
-    gray_frame = np.dot(resized_frame[:, :, 0:3], [0.299, 0.587, 0.114]).astype(np.uint8)
+    # [3] Convert the frame to Grayscale!
+    gray_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2GRAY)
     cv2.imshow('Gray', gray_frame)
 
-    # Let's show only trapezoid
+    # [4] Select only the road!
     trapezoid_mask = np.zeros_like(resized_frame)
 
     bottom_left_trapezoid = (0, height)
     bottom_right_trapezoid = (width, height)
-    top_left_trapezoid = (width * 0.45, height * 0.75)
-    top_right_trapezoid = (width * 0.55, height * 0.75)
+    top_left_trapezoid = (width * 0.47, height * 0.75)
+    top_right_trapezoid = (width * 0.53, height * 0.75)
 
     # Clockwise, starting with the bottom left corner
     trapezoid_bounds = np.array(
@@ -52,7 +54,7 @@ while True:
     trapezoid_gray_frame = cv2.bitwise_and(gray_frame, gray_trapezoid_mask)
     cv2.imshow('Trapezoid', trapezoid_gray_frame)
 
-    # Get top-down view
+    # [5] Get a top-down view! (sometimes called a birds-eye view)
     top_left = (0, 0)
     top_right = (width, 0)
 
@@ -62,10 +64,10 @@ while True:
     magic_matrix = cv2.getPerspectiveTransform(trapezoid_bounds, screen_bounds)
     stretched_frame = cv2.warpPerspective(trapezoid_gray_frame, magic_matrix, (width, height))
 
-    # Adding a bit of blur
+    # [6] Adding a bit of blur
     blurred_frame = cv2.blur(stretched_frame, ksize=(7, 7))
 
-    # Doing edge detection
+    # [7] Do edge detection!
     sobel_vertical = np.float32([[-1, -2, -1],
                                  [0, 0, 0],
                                  [1, 2, 1]])
@@ -81,23 +83,23 @@ while True:
 
     cv2.imshow('Filtered', filtered_final_frame)
 
-    # Binarize the frame
-    threshold = 75
+    # [8] Binarize the frame
+    threshold = 50
 
     # cv2.threshold(source, thresholdValue, maxVal, thresholdingTechnique)
     ret, binarized_frame = cv2.threshold(filtered_final_frame, threshold, 255, cv2.THRESH_BINARY)
 
     cv2.imshow('Binarized', binarized_frame)
 
-    # [9] Get the coordinates of street markings on each side of the road
+    # [9] Get the coordinates of street markings on each side of the road!
     copied_frame = binarized_frame.copy()
 
     # Compute the number of columns to set to black
-    num_cols = int(width * 0.05)
+    tbd_cols = int(width * 0.05)
 
     # Set the first and last X columns to black
-    copied_frame[:, :num_cols] = 0
-    copied_frame[:, -num_cols:] = 0
+    copied_frame[:, :tbd_cols] = 0
+    copied_frame[:, -tbd_cols:] = 0
 
     cv2.imshow('Black margins', copied_frame)
 
@@ -109,33 +111,31 @@ while True:
     left_white_points = np.argwhere(left_frame == 255)
     right_white_points = np.argwhere(right_frame == 255)
 
-    left_y = left_white_points[:, 0]
-    left_x = left_white_points[:, 1]
-    right_y = right_white_points[:, 0]
-    right_x = right_white_points[:, 1]
-
     # Set the correct position for x in the original image
-    right_x += (width // 2)
+    right_white_points[:, 1] += width // 2
 
-    # [10] Find the lines that detect the edges of the lane
+    left_ys, left_xs = zip(*left_white_points)
+    right_ys, right_xs = zip(*right_white_points)
+
+# [10] Find the lines that detect the edges of the lane
 
     # Fit a polynomial to the left lane line
-    left_fit = np.polyfit(left_x, left_y, 1)
+    left_fit = np.polynomial.polynomial.polyfit(left_xs, left_ys, 1)
 
     # Fit a polynomial to the right lane line
-    right_fit = np.polyfit(right_x, right_y, 1)
+    right_fit = np.polynomial.polynomial.polyfit(right_xs, right_ys, 1)
 
     # Calculate the two endpoints for the left lane line
     left_top_y = 0
-    left_top_x = int(np.polyval(left_fit, left_top_y))
-    left_bottom_y = height - 1
-    left_bottom_x = int(np.polyval(left_fit, left_bottom_y))
+    left_top_x = int(left_top_y - left_fit[0] / left_fit[1])
+    left_bottom_y = height
+    left_bottom_x = int((left_bottom_y - left_fit[0]) / left_fit[1])
 
     # Calculate the two endpoints for the right lane line
     right_top_y = 0
-    right_top_x = int(np.polyval(right_fit, right_top_y))
-    right_bottom_y = height - 1
-    right_bottom_x = int(np.polyval(right_fit, right_bottom_y))
+    right_top_x = int(right_top_y - right_fit[0] / right_fit[1])
+    right_bottom_y = height
+    right_bottom_x = int((right_bottom_y - right_fit[0]) / right_fit[1])
 
     # Check if any of the calculated x values are bad
     if -1e8 <= left_top_x <= 1e8:
@@ -149,20 +149,42 @@ while True:
         right_bottom = (right_bottom_x, right_bottom_y)
 
     # Middle screen line
-    cv2.line(binarized_frame, (width // 2, 0), (width // 2, height), (255, 0, 0), 1)
+    cv2.line(copied_frame, (width // 2, 0), (width // 2, height), (255, 0, 0), 1)
 
     # Draw the left lane line
-    cv2.line(binarized_frame, left_top, left_bottom, (200, 0, 0), 3)
+    cv2.line(copied_frame, left_top, left_bottom, (200, 0, 0), 3)
 
     # Draw the right lane line
-    cv2.line(binarized_frame, right_top, right_bottom, (100, 0, 0), 3)
+    cv2.line(copied_frame, right_top, right_bottom, (100, 0, 0), 3)
 
-    cv2.imshow('Lines', binarized_frame)
+    cv2.imshow('Lines', copied_frame)
 
     # cv2.waitKey(n) waits n ms for a key to be pressed and returns the code of that key
     # cv2.waitKey(n) & 0xFF gives the ASCII code of the letter (so the if is executed when we press "q").
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+    # [11] Create a final visualization!
+    left_side_frame = np.zeros_like(copied_frame)
+    right_side_frame = np.zeros_like(copied_frame)
+
+    cv2.line(left_side_frame, left_top, left_bottom, (255, 0, 0), 3)
+    cv2.line(right_side_frame, right_top, right_bottom, (255, 0, 0), 3)
+
+    magic_matrix = cv2.getPerspectiveTransform(screen_bounds, trapezoid_bounds)
+
+    cv2.warpPerspective(left_side_frame, magic_matrix, (width, height), left_side_frame)
+    cv2.warpPerspective(right_side_frame, magic_matrix, (width, height), right_side_frame)
+
+    left_lane_points = np.argwhere(left_side_frame == 255)
+
+    right_lane_points = np.argwhere(right_side_frame == 255)
+
+    final_frame = resized_frame.copy()
+    final_frame[left_lane_points[:, 0], left_lane_points[:, 1]] = [0, 0, 255]
+    final_frame[right_lane_points[:, 0], right_lane_points[:, 1]] = [0, 255, 0]
+
+    cv2.imshow('Final', final_frame)
 
 cam.release()
 cv2.destroyAllWindows()
