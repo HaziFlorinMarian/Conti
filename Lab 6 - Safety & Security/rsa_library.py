@@ -112,21 +112,25 @@ def encrypt(public_key, hex_number):
 def decrypt(private_key, encrypted_msg):
     d, n = private_key
     plaintext = pow(encrypted_msg, d, n)
-    hex_number = hex(plaintext)
+    hex_number = "0x" + format(plaintext, '04x')
     return hex_number
 
 
 ############################### EXERCISE 3 ###############################
 def low_check(hex_nr):
-    pass
+    low = int(hex_nr[2:4], 16)
 
-
-''' complete with necesarry code '''
+    if low == int(ON_low, 16):
+        return True
+    else:
+        return False
 
 
 ############################### EXERCISE 4 ###############################
 def number_check(hex_nr):
-    pass
+    high = int(hex_nr[-2:], 16)
 
-
-''' complete with necesarry code '''
+    if high == int(NOT_low, 16):
+        return True
+    else:
+        return False
