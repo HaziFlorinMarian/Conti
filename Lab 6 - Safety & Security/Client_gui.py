@@ -7,8 +7,6 @@ import os
 import threading
 import sys, time
 
-
-
 HOST = 'localhost'
 PORT = 12346
 ok_client = False
@@ -105,42 +103,59 @@ class Ui_MainWindow(object):
 
     ############################### EXERCISE 5 ###############################
     def start_client(self):
-        pass
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((HOST, PORT))
+        self.connected_label.setText("Connected to the server")
+        self.airbag.setEnabled(False)
+        self.corrupted_low.setEnabled(False)
+        self.corrupted_high.setEnabled(False)
+        self.client_start.setEnabled(False)
+        self.pub_k = int(self.s.recv(1024).decode())
+        self.priv_k = int(self.s.recv(1024).decode())
+        self.modul = int(self.s.recv(1024).decode())
 
+        print(f"[DEBUG] Public key: {self.pub_k}")
+        print(f"[DEBUG] Private key: {self.priv_k}")
+        print(f"[DEBUG] Modulus: {self.modul}")
 
-
-
-############################### EXERCISE 8 ###############################
+    ############################### EXERCISE 8 ###############################
     def recv_messages(self):
-       pass
-
+        self.recv_thread = threading.Thread(target=self.recv_handler, args=(self.stop_event,))
+        self.recv_thread.start()
 
     def recv_handler(self, stop_event):
-        pass
+        while not stop_event.is_set():
+            try:
+                data = self.s.recv(1024).decode()
+                if data == '0xfd02':
+                    self.airbag.setEnabled(True)
+                    self.corrupted_low.setEnabled(True)
+                    self.corrupted_high.setEnabled(True)
+                elif data == "Corrupted low":
+                    self.corrupted_low_label.setText("Corrupted low")
+                elif data == "Corrupted high":
+                    self.corrupted_high_label.setText("Corrupted high")
+                else:
+                    self.airbag_on_label.setText("Airbag on")
 
-
-
-############################### EXERCISE 9 ###############################
+    ############################### EXERCISE 9 ###############################
     def send_on_data(self):
-        pass
-    ''' complete with necesarry code '''
+        encrypted_data = rsa_library.encrypt(self.pub_k, airbag_on)
+        self.s.send(str(encrypted_data).encode())
 
-
-############################### EXERCISE 10 ###############################
+    ############################### EXERCISE 10 ###############################
     def send_corrupted_low(self):
-        pass
-        ''' complete with necesarry code '''
+        encrypted_data = rsa_library.encrypt(self.pub_k, corrupted_low)
+        self.s.send(str(encrypted_data).encode())
 
-
-############################### EXERCISE 11 ###############################
+    ############################### EXERCISE 11 ###############################
     def send_corrupted_high(self):
-        pass
-        ''' complete with necesarry code '''
-
+        encrypted_data = rsa_library.encrypt(self.pub_k, corrupted_high)
+        self.s.send(str(encrypted_data).encode())
 
     def kill_proc_tree(self, pid, including_parent=True):
-         parent = psutil.Process(pid)
-         if including_parent:
+        parent = psutil.Process(pid)
+        if including_parent:
             parent.kill()
 
 
@@ -175,4 +190,4 @@ if __name__ == "__main__":
     sys.exit(app.exec_())
 
 me = os.getpid()
-#kill_proc_tree(me)
+# kill_proc_tree(me)
